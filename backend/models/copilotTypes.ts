@@ -77,3 +77,21 @@ export interface CopilotHealthResponse {
   model: string;
   uptime: number;
 }
+
+/**
+ * Shape of a single recommendation log entry stored in Firestore for auditing.
+ */
+export interface RecommendationLog {
+  id?: string;
+  timestamp: string;
+  request?: {
+    fanType?: string;
+    fanLanguage?: string;
+  };
+  response?: {
+    recommendedGate?: string;
+    translatedMessage?: string;
+  };
+  duration?: number;
+  engine?: string;
+}

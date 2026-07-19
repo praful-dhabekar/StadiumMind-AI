@@ -17,7 +17,7 @@ export function notFoundHandler(req: Request, res: Response): void {
  * Catches unhandled exceptions or route errors and returns consistent JSON structures.
  */
 export function errorHandler(
-  err: any,
+  err: Error & { status?: number; statusCode?: number; [key: string]: unknown },
   req: Request,
   res: Response,
   _next: NextFunction

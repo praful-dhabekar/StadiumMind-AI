@@ -36,7 +36,7 @@ export const Simulator: React.FC = () => {
     setLogs((prev) => [`[${time}] ${msg}`, ...prev.slice(0, 19)]);
   };
 
-  const handleAction = async (actionName: string, fn: () => Promise<any>) => {
+  const handleAction = async (actionName: string, fn: () => Promise<unknown>) => {
     setIsProcessing(true);
     try {
       await fn();

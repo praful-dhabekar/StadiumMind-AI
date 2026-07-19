@@ -31,25 +31,11 @@ import {
   FanLanguage,
   FanType,
   DestinationType,
+  RecommendationLog,
 } from '../../backend/models/copilotTypes';
 import { requestCopilotRecommendation, fetchRecommendationLogs } from '../services/copilotApiService';
 import { useTypewriter } from '../hooks/useAnimations';
 
-/** Shape of a single recommendation log entry from Firestore */
-interface RecommendationLog {
-  id?: string;
-  timestamp: string;
-  request?: {
-    fanType?: string;
-    fanLanguage?: string;
-  };
-  response?: {
-    recommendedGate?: string;
-    translatedMessage?: string;
-  };
-  duration?: number;
-  engine?: string;
-}
 
 /** Animated typewriter text for the translated fan message */
 const TypewriterText: React.FC<{ text: string }> = ({ text }) => {

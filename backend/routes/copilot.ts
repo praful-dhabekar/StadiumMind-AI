@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { CopilotRequest } from '../models/copilotTypes';
 import { getLiveStadiumData, saveRecommendationLog } from '../services/firestoreBackendService';
 import { generateCopilotRecommendation } from '../services/geminiService';
-import { getLocalStore } from '../../src/services/firestoreBase';
+import { getLocalStore, fetchCollection } from '../../src/services/firestoreBase';
 import { rateLimiter } from '../middleware/rateLimiter';
 
 export const copilotRouter = Router();
@@ -99,8 +99,7 @@ copilotRouter.post('/recommend', rateLimiter(60000, 15), async (req: Request, re
  */
 copilotRouter.get('/history', async (_req: Request, res: Response) => {
   try {
-    const localStore = getLocalStore('recommendations', []);
-    const logs = localStore.getAll();
+    const logs = await fetchCollection('recommendations');
     // Sort descending by timestamp
     const sortedLogs = [...logs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
@@ -109,9 +108,13 @@ copilotRouter.get('/history', async (_req: Request, res: Response) => {
       logs: sortedLogs.slice(0, 20),
     });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to retrieve recommendation logs.',
+    // Graceful fallback to local session cache if Firestore call fails or is timed out
+    const localStore = getLocalStore('recommendations', []);
+    const logs = localStore.getAll();
+    const sortedLogs = [...logs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return res.json({
+      success: true,
+      logs: sortedLogs.slice(0, 20),
     });
   }
 });

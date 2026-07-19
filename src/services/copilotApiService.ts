@@ -1,6 +1,7 @@
 import {
   CopilotRequest,
   CopilotResponsePayload,
+  RecommendationLog,
 } from '../../backend/models/copilotTypes';
 
 /**
@@ -34,7 +35,7 @@ export async function requestCopilotRecommendation(
 /**
  * Fetch recent recommendation audit logs from the Express backend.
  */
-export async function fetchRecommendationLogs(): Promise<any[]> {
+export async function fetchRecommendationLogs(): Promise<RecommendationLog[]> {
   try {
     const response = await fetch('/api/copilot/history');
     if (response.ok) {

@@ -23,8 +23,8 @@ export async function generateCopilotRecommendation(
 
       // Support gemini-2.5-flash primarily, falling back to gemini-2.0-flash / gemini-1.5-flash if 404 NOT_FOUND
       const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
-      let response: any = null;
-      let lastError: any = null;
+      let response: { text?: string } | null = null;
+      let lastError: Error | null = null;
       let usedModel = 'gemini-2.5-flash';
 
       for (const modelName of modelsToTry) {
@@ -46,9 +46,10 @@ export async function generateCopilotRecommendation(
           usedModel = modelName;
           lastError = null;
           break;
-        } catch (modelErr: any) {
-          lastError = modelErr;
-          const msg = modelErr?.message || String(modelErr);
+        } catch (modelErr: unknown) {
+          const err = modelErr as Error;
+          lastError = err;
+          const msg = err.message || String(err);
           if (msg.includes('404') || msg.includes('NOT_FOUND') || msg.includes('not available')) {
             console.warn(`[AI MODEL INFO] Model ${modelName} returned NOT_FOUND. Trying next available Gemini Flash variant...`);
             continue;
@@ -61,7 +62,7 @@ export async function generateCopilotRecommendation(
         throw lastError;
       }
 
-      const rawText = response.text || '';
+      const rawText = response ? response.text || '' : '';
       const validatedRecommendation = validateCopilotResponse(rawText);
       const observability = calculateObservability(
         prompt,
@@ -77,9 +78,10 @@ export async function generateCopilotRecommendation(
         recommendation: validatedRecommendation,
         observability,
       };
-    } catch (apiError: any) {
+    } catch (apiError: unknown) {
+      const err = apiError as Error;
       let errorCategory = 'Gemini API Error';
-      const msg = apiError?.message || String(apiError);
+      const msg = err.message || String(err);
 
       if (msg.includes('API key') || msg.includes('400') || msg.includes('403') || msg.includes('API_KEY_INVALID')) {
         errorCategory = 'Invalid API Key';

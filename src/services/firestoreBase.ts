@@ -15,11 +15,13 @@ import { db } from '../firebase/firebaseConfig';
  * Timeout wrapper helper for Firestore network operations in test/offline environments.
  */
 async function withTimeout<T>(promise: Promise<T>, timeoutMs = 800): Promise<T> {
-  let timeoutId: any;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(() => reject(new Error('Firestore Network Timeout')), timeoutMs);
   });
-  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timeoutId));
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
 }
 
 /**
@@ -76,7 +78,7 @@ class LocalFirestoreStore<T extends { id: string }> {
   }
 }
 
-const localStores: Map<string, LocalFirestoreStore<any>> = new Map();
+const localStores: Map<string, LocalFirestoreStore<{ id: string }>> = new Map();
 
 /**
  * Get or create local reactive store fallback for collection.
@@ -86,9 +88,12 @@ export function getLocalStore<T extends { id: string }>(
   seedData: T[] = []
 ): LocalFirestoreStore<T> {
   if (!localStores.has(collectionName)) {
-    localStores.set(collectionName, new LocalFirestoreStore<T>(seedData));
+    localStores.set(
+      collectionName,
+      new LocalFirestoreStore<T>(seedData) as unknown as LocalFirestoreStore<{ id: string }>
+    );
   }
-  return localStores.get(collectionName)!;
+  return localStores.get(collectionName) as unknown as LocalFirestoreStore<T>;
 }
 
 /**
