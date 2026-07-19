@@ -38,7 +38,7 @@ CRITICAL RULES:
 
   const contextInstruction = `
 === CONTEXT ===
-Match Event: FIFA World Cup 2026 - Group Stage Match 14
+Match Event: FIFA World Cup 2026 - USA vs BRA (Group Stage Match 14)
 Venue: MetLife Stadium, East Rutherford, NJ
 Total Attendance Capacity: 82,500 fans
 Goal: Guide fans seamlessly to optimal entry gates, restrooms, and parking lots based on live crowd flow telemetry.

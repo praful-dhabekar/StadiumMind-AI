@@ -21,6 +21,10 @@ export const MainLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-stadium-950 flex flex-col">
+      {/* Skip navigation — WCAG 2.4.1: Bypass Blocks */}
+      <a href="#main-content" className="skip-nav">
+        Skip to main content
+      </a>
       <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
       <div className="lg:pl-64 flex flex-col flex-1 min-w-0">
         <Topbar onToggleSidebar={toggleSidebar} />

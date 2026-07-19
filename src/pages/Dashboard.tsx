@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   DoorOpen,
   Clock,
@@ -7,6 +7,9 @@ import {
   Car,
   Bath,
   Sparkles,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Badge } from '../components/Badge';
@@ -14,10 +17,52 @@ import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/ErrorState';
 import { SkeletonGrid } from '../components/SkeletonLoader';
 import { useStadiumRealtimeData } from '../hooks/useStadiumRealtimeData';
+import { useAnimatedCounter } from '../hooks/useAnimations';
 import { Link } from 'react-router-dom';
+
+/** Animated metric card sub-component to keep Dashboard DRY */
+interface MetricCardProps {
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  value: number;
+  suffix?: string;
+  badge: React.ReactNode;
+  trend?: 'up' | 'down' | 'neutral';
+}
+
+const MetricCard: React.FC<MetricCardProps> = ({
+  title, subtitle, icon, value, suffix, badge, trend,
+}) => {
+  const animated = useAnimatedCounter(value, 900);
+  const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus;
+  const trendColor = trend === 'up' ? 'text-emerald-400' : trend === 'down' ? 'text-rose-400' : 'text-stadium-500';
+
+  return (
+    <Card title={title} subtitle={subtitle} action={icon} hoverEffect>
+      <div className="flex items-baseline justify-between mt-2">
+        <div className="flex items-baseline gap-1.5">
+          <div className="text-3xl font-extrabold text-stadium-100 font-sans tabular-nums">
+            {animated}
+          </div>
+          {suffix && (
+            <span className="text-sm font-normal text-stadium-400">{suffix}</span>
+          )}
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          {badge}
+          {trend && (
+            <TrendIcon className={`w-3.5 h-3.5 ${trendColor}`} aria-hidden="true" />
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+};
 
 /**
  * Realtime Firestore-backed Dashboard page for StadiumMind AI.
+ * Features animated metric counters that respond to live Firestore state changes.
  */
 export const Dashboard: React.FC = () => {
   const {
@@ -30,6 +75,32 @@ export const Dashboard: React.FC = () => {
     isError,
     error,
   } = useStadiumRealtimeData();
+
+  const metrics = useMemo(() => {
+    const openGatesCount = gates.filter((g) => g.status === 'OPEN').length;
+    const avgWaitTime =
+      gates.length > 0
+        ? Math.round(gates.reduce((sum, g) => sum + g.waitTime, 0) / gates.length)
+        : 0;
+    const activeIncidentsCount = incidents.filter((i) => i.status !== 'Resolved').length;
+    const availableVolunteersCount = volunteers.filter((v) => v.available).length;
+    const totalParkingAvailable = parking.reduce((sum, p) => sum + p.available, 0);
+    const totalParkingCapacity = parking.reduce((sum, p) => sum + p.total, 0);
+    const avgRestroomOccupancy =
+      restrooms.length > 0
+        ? Math.round(restrooms.reduce((sum, r) => sum + r.occupancy, 0) / restrooms.length)
+        : 0;
+
+    return {
+      openGatesCount,
+      avgWaitTime,
+      activeIncidentsCount,
+      availableVolunteersCount,
+      totalParkingAvailable,
+      totalParkingCapacity,
+      avgRestroomOccupancy,
+    };
+  }, [gates, parking, volunteers, incidents, restrooms]);
 
   if (isLoading) {
     return (
@@ -50,42 +121,18 @@ export const Dashboard: React.FC = () => {
     );
   }
 
-  // 1. Open Gates
-  const openGates = gates.filter((g) => g.status === 'OPEN');
-  const openGatesCount = openGates.length;
-
-  // 2. Average Wait Time (minutes)
-  const avgWaitTime =
-    gates.length > 0
-      ? Math.round(
-          gates.reduce((sum, g) => sum + g.waitTime, 0) / gates.length
-        )
-      : 0;
-
-  // 3. Active Incidents
-  const activeIncidents = incidents.filter((i) => i.status !== 'Resolved');
-  const activeIncidentsCount = activeIncidents.length;
-
-  // 4. Available Volunteers
-  const availableVolunteersCount = volunteers.filter((v) => v.available).length;
-
-  // 5. Parking Availability (Total available spaces across lots)
-  const totalParkingAvailable = parking.reduce((sum, p) => sum + p.available, 0);
-  const totalParkingCapacity = parking.reduce((sum, p) => sum + p.total, 0);
-
-  // 6. Restroom Occupancy (Average occupancy percentage)
-  const avgRestroomOccupancy =
-    restrooms.length > 0
-      ? Math.round(
-          restrooms.reduce((sum, r) => sum + r.occupancy, 0) / restrooms.length
-        )
-      : 0;
-
   return (
     <div className="space-y-6">
       {/* Banner */}
       <div className="relative overflow-hidden rounded-3xl p-6 lg:p-8 bg-gradient-to-r from-stadium-900 via-stadium-900/90 to-brand-teal/20 border border-brand-teal/30 shadow-glow">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        {/* Decorative animated background orb */}
+        <div
+          className="absolute -top-10 -right-10 w-56 h-56 rounded-full opacity-10 blur-3xl"
+          style={{ background: 'radial-gradient(circle, #00D2FF, #8B5CF6)' }}
+          aria-hidden="true"
+        />
+
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Badge variant="brand" pulse icon={<Sparkles className="w-3.5 h-3.5" />}>
@@ -104,110 +151,98 @@ export const Dashboard: React.FC = () => {
           <div className="shrink-0 flex items-center gap-3">
             <Link
               to="/copilot"
+              id="dashboard-copilot-cta"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-gold text-stadium-950 font-bold text-sm hover:bg-amber-300 transition-all shadow-glow focus:outline-none focus:ring-2 focus:ring-brand-gold"
             >
-              <Sparkles className="w-4 h-4" />
+              <Sparkles className="w-4 h-4" aria-hidden="true" />
               <span>AI Copilot</span>
             </Link>
           </div>
         </div>
       </div>
 
-      {/* 6 Required Dashboard Cards Grid */}
+      {/* 6 Animated Dashboard Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* Card 1: Open Gates */}
-        <Card
+        <MetricCard
           title="Open Gates"
-          subtitle={`${openGatesCount} of ${gates.length} gates functional`}
-          action={<DoorOpen className="w-5 h-5 text-brand-teal" />}
-        >
-          <div className="flex items-baseline justify-between mt-2">
-            <div className="text-3xl font-extrabold text-stadium-100 font-sans">
-              {openGatesCount} / {gates.length}
-            </div>
-            <Badge variant={openGatesCount > 0 ? 'success' : 'error'}>
-              {openGatesCount > 0 ? 'Operational' : 'All Closed'}
+          subtitle={`of ${gates.length} total gates`}
+          icon={<DoorOpen className="w-5 h-5 text-brand-teal" aria-hidden="true" />}
+          value={metrics.openGatesCount}
+          badge={
+            <Badge variant={metrics.openGatesCount > 0 ? 'success' : 'error'}>
+              {metrics.openGatesCount > 0 ? 'Operational' : 'All Closed'}
             </Badge>
-          </div>
-        </Card>
+          }
+          trend={metrics.openGatesCount > 3 ? 'up' : metrics.openGatesCount < 2 ? 'down' : 'neutral'}
+        />
 
-        {/* Card 2: Average Wait Time */}
-        <Card
+        <MetricCard
           title="Average Wait Time"
           subtitle="Estimated queue time across entry points"
-          action={<Clock className="w-5 h-5 text-sky-400" />}
-        >
-          <div className="flex items-baseline justify-between mt-2">
-            <div className="text-3xl font-extrabold text-stadium-100 font-sans">
-              {avgWaitTime} <span className="text-sm font-normal text-stadium-400">min</span>
-            </div>
-            <Badge variant={avgWaitTime > 20 ? 'warning' : 'info'}>
-              {avgWaitTime > 20 ? 'High Delay' : 'Smooth Flow'}
+          icon={<Clock className="w-5 h-5 text-sky-400" aria-hidden="true" />}
+          value={metrics.avgWaitTime}
+          suffix="min"
+          badge={
+            <Badge variant={metrics.avgWaitTime > 20 ? 'warning' : 'info'}>
+              {metrics.avgWaitTime > 20 ? 'High Delay' : 'Smooth Flow'}
             </Badge>
-          </div>
-        </Card>
+          }
+          trend={metrics.avgWaitTime > 20 ? 'down' : 'up'}
+        />
 
-        {/* Card 3: Active Incidents */}
-        <Card
+        <MetricCard
           title="Active Incidents"
           subtitle="Unresolved stadium incidents"
-          action={<AlertTriangle className="w-5 h-5 text-rose-400" />}
-        >
-          <div className="flex items-baseline justify-between mt-2">
-            <div className="text-3xl font-extrabold text-rose-400 font-sans">
-              {activeIncidentsCount}
-            </div>
-            <Badge variant={activeIncidentsCount > 0 ? 'error' : 'success'} pulse={activeIncidentsCount > 0}>
-              {activeIncidentsCount > 0 ? 'Attention Required' : 'All Clear'}
+          icon={<AlertTriangle className="w-5 h-5 text-rose-400" aria-hidden="true" />}
+          value={metrics.activeIncidentsCount}
+          badge={
+            <Badge
+              variant={metrics.activeIncidentsCount > 0 ? 'error' : 'success'}
+              pulse={metrics.activeIncidentsCount > 0}
+            >
+              {metrics.activeIncidentsCount > 0 ? 'Attention Required' : 'All Clear'}
             </Badge>
-          </div>
-        </Card>
+          }
+          trend={metrics.activeIncidentsCount > 0 ? 'down' : 'up'}
+        />
 
-        {/* Card 4: Available Volunteers */}
-        <Card
+        <MetricCard
           title="Available Volunteers"
           subtitle="On-call volunteers ready for dispatch"
-          action={<Users className="w-5 h-5 text-emerald-400" />}
-        >
-          <div className="flex items-baseline justify-between mt-2">
-            <div className="text-3xl font-extrabold text-emerald-400 font-sans">
-              {availableVolunteersCount} <span className="text-sm font-normal text-stadium-400">/ {volunteers.length}</span>
-            </div>
-            <Badge variant="success">Roster Active</Badge>
-          </div>
-        </Card>
+          icon={<Users className="w-5 h-5 text-emerald-400" aria-hidden="true" />}
+          value={metrics.availableVolunteersCount}
+          suffix={`/ ${volunteers.length}`}
+          badge={<Badge variant="success">Roster Active</Badge>}
+          trend="neutral"
+        />
 
-        {/* Card 5: Parking Availability */}
-        <Card
+        <MetricCard
           title="Parking Availability"
-          subtitle={`Total capacity: ${totalParkingCapacity} spaces`}
-          action={<Car className="w-5 h-5 text-amber-400" />}
-        >
-          <div className="flex items-baseline justify-between mt-2">
-            <div className="text-3xl font-extrabold text-stadium-100 font-sans">
-              {totalParkingAvailable} <span className="text-sm font-normal text-stadium-400">spaces</span>
-            </div>
-            <Badge variant={totalParkingAvailable < 50 ? 'warning' : 'success'}>
-              {totalParkingAvailable < 50 ? 'Limited' : 'Available'}
+          subtitle={`Total capacity: ${metrics.totalParkingCapacity} spaces`}
+          icon={<Car className="w-5 h-5 text-amber-400" aria-hidden="true" />}
+          value={metrics.totalParkingAvailable}
+          suffix="spaces"
+          badge={
+            <Badge variant={metrics.totalParkingAvailable < 50 ? 'warning' : 'success'}>
+              {metrics.totalParkingAvailable < 50 ? 'Limited' : 'Available'}
             </Badge>
-          </div>
-        </Card>
+          }
+          trend={metrics.totalParkingAvailable < 50 ? 'down' : 'neutral'}
+        />
 
-        {/* Card 6: Restroom Occupancy */}
-        <Card
+        <MetricCard
           title="Restroom Occupancy"
           subtitle="Average occupancy level across wings"
-          action={<Bath className="w-5 h-5 text-brand-violet" />}
-        >
-          <div className="flex items-baseline justify-between mt-2">
-            <div className="text-3xl font-extrabold text-stadium-100 font-sans">
-              {avgRestroomOccupancy}%
-            </div>
-            <Badge variant={avgRestroomOccupancy > 80 ? 'warning' : 'info'}>
-              {avgRestroomOccupancy > 80 ? 'High Usage' : 'Normal'}
+          icon={<Bath className="w-5 h-5 text-brand-violet" aria-hidden="true" />}
+          value={metrics.avgRestroomOccupancy}
+          suffix="%"
+          badge={
+            <Badge variant={metrics.avgRestroomOccupancy > 80 ? 'warning' : 'info'}>
+              {metrics.avgRestroomOccupancy > 80 ? 'High Usage' : 'Normal'}
             </Badge>
-          </div>
-        </Card>
+          }
+          trend={metrics.avgRestroomOccupancy > 80 ? 'down' : 'neutral'}
+        />
       </div>
 
       {/* Live Firestore Feeds Grid */}
@@ -216,57 +251,60 @@ export const Dashboard: React.FC = () => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-stadium-100 flex items-center gap-2 font-sans">
-              <DoorOpen className="w-5 h-5 text-brand-teal" />
+              <DoorOpen className="w-5 h-5 text-brand-teal" aria-hidden="true" />
               <span>Firestore Gates Stream</span>
             </h2>
-            <Link to="/gates" className="text-xs font-semibold text-brand-teal hover:underline">
+            <Link to="/gates" className="text-xs font-semibold text-brand-teal hover:underline focus:outline-none focus:ring-2 focus:ring-brand-teal rounded">
               View All →
             </Link>
           </div>
 
           {gates.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {gates.map((gate) => (
-                <Card
-                  key={gate.id}
-                  title={gate.name}
-                  subtitle={`Queue: ${gate.queueLength} • Wait: ${gate.waitTime}m`}
-                  hoverEffect
-                  action={
-                    <Badge
-                      variant={
-                        gate.status === 'CONGESTED'
-                          ? 'error'
-                          : gate.status === 'CLOSED'
-                          ? 'default'
-                          : 'success'
-                      }
-                    >
-                      {gate.status}
-                    </Badge>
-                  }
-                >
-                  <div className="text-xs space-y-2 mt-1">
-                    <div className="flex justify-between text-stadium-400">
-                      <span>Occupancy: {gate.currentOccupancy}/{gate.capacity}</span>
-                      <span className="font-semibold text-stadium-200">
-                        {Math.round((gate.currentOccupancy / gate.capacity) * 100)}%
-                      </span>
+              {gates.map((gate) => {
+                const pct = Math.min(100, Math.round((gate.currentOccupancy / gate.capacity) * 100));
+                const barColor =
+                  gate.status === 'CONGESTED'
+                    ? 'bg-rose-500'
+                    : gate.status === 'OPEN'
+                    ? 'bg-brand-teal'
+                    : 'bg-stadium-700';
+
+                return (
+                  <Card
+                    key={gate.id}
+                    title={gate.name}
+                    subtitle={`Queue: ${gate.queueLength} • Wait: ${gate.waitTime}m`}
+                    hoverEffect
+                    action={
+                      <Badge
+                        variant={
+                          gate.status === 'CONGESTED'
+                            ? 'error'
+                            : gate.status === 'CLOSED'
+                            ? 'default'
+                            : 'success'
+                        }
+                      >
+                        {gate.status}
+                      </Badge>
+                    }
+                  >
+                    <div className="text-xs space-y-2 mt-1">
+                      <div className="flex justify-between text-stadium-400">
+                        <span>Occupancy: {gate.currentOccupancy}/{gate.capacity}</span>
+                        <span className="font-semibold text-stadium-200">{pct}%</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-stadium-800 overflow-hidden">
+                        <div
+                          className={`h-full ${barColor} transition-all duration-700 ease-out`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-1.5 rounded-full bg-stadium-800 overflow-hidden">
-                      <div
-                        className="h-full bg-brand-teal transition-all duration-300"
-                        style={{
-                          width: `${Math.min(
-                            100,
-                            (gate.currentOccupancy / gate.capacity) * 100
-                          )}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           ) : (
             <EmptyState
@@ -280,10 +318,10 @@ export const Dashboard: React.FC = () => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-stadium-100 flex items-center gap-2 font-sans">
-              <AlertTriangle className="w-5 h-5 text-rose-400" />
+              <AlertTriangle className="w-5 h-5 text-rose-400" aria-hidden="true" />
               <span>Firestore Incidents Stream</span>
             </h2>
-            <Link to="/incidents" className="text-xs font-semibold text-brand-teal hover:underline">
+            <Link to="/incidents" className="text-xs font-semibold text-brand-teal hover:underline focus:outline-none focus:ring-2 focus:ring-brand-teal rounded">
               View All →
             </Link>
           </div>
@@ -291,14 +329,21 @@ export const Dashboard: React.FC = () => {
           {incidents.length > 0 ? (
             <Card className="divide-y divide-stadium-800/60">
               {incidents.map((incident) => (
-                <div key={incident.id} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between">
+                <div
+                  key={incident.id}
+                  className="py-3 first:pt-0 last:pb-0 flex items-center justify-between transition-colors hover:bg-stadium-800/20 px-1 rounded"
+                >
                   <div>
                     <div className="text-xs font-bold text-stadium-100 flex items-center gap-2">
                       <span>{incident.type} Incident</span>
                       <span className="text-[10px] text-stadium-400 font-mono">({incident.location})</span>
                     </div>
                     <div className="text-[11px] text-stadium-400 mt-0.5">
-                      Severity: <span className="text-stadium-200">{incident.severity}</span> • Reported: {incident.timestamp ? new Date(incident.timestamp).toLocaleTimeString() : 'Just now'}
+                      Severity: <span className="text-stadium-200">{incident.severity}</span>
+                      {' '}• Reported:{' '}
+                      {incident.timestamp
+                        ? new Date(incident.timestamp).toLocaleTimeString()
+                        : 'Just now'}
                     </div>
                   </div>
 

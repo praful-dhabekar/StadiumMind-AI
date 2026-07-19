@@ -3,6 +3,7 @@ import { CopilotRequest } from '../models/copilotTypes';
 import { getLiveStadiumData, saveRecommendationLog } from '../services/firestoreBackendService';
 import { generateCopilotRecommendation } from '../services/geminiService';
 import { getLocalStore } from '../../src/services/firestoreBase';
+import { rateLimiter } from '../middleware/rateLimiter';
 
 export const copilotRouter = Router();
 
@@ -35,7 +36,7 @@ copilotRouter.get('/health', async (_req: Request, res: Response) => {
  * POST /api/copilot/recommend
  * Generates an AI recommendation by reasoning over live Firestore stadium telemetry using Gemini 2.5 Flash.
  */
-copilotRouter.post('/recommend', async (req: Request, res: Response) => {
+copilotRouter.post('/recommend', rateLimiter(60000, 15), async (req: Request, res: Response) => {
   try {
     const { fanLanguage, fanType, destination, currentGate, notes } = req.body as CopilotRequest;
 
