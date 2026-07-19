@@ -12,7 +12,7 @@ This document details the exact, step-by-step procedures to deploy the **Stadium
 +---------------------------------+-------------------------------+
                                   |
                                   v
-+-----------------------------------------------------------------+
++---------------------------------+-------------------------------+
 |                       Firebase Hosting                          |
 |         (Static Assets: HTML, JS, CSS, Google UI Fonts)         |
 +---------------------------------+-------------------------------+
@@ -36,12 +36,12 @@ Run this command in **GCP Cloud Shell** or your terminal:
 
 ```bash
 # Enable Cloud Run Admin API on your Firebase project
-gcloud services enable run.googleapis.com --project=stadiummind-ai-f7ced
+gcloud services enable run.googleapis.com --project=praful-workspace
 ```
 
 ---
 
-## 📋 Step 2: Firebase CLI & Project Setup
+## 📋 Step 2: Firebase CLI & Switch Active Project
 
 1. Install the global Firebase CLI tool (if not installed):
    ```bash
@@ -53,9 +53,9 @@ gcloud services enable run.googleapis.com --project=stadiummind-ai-f7ced
    firebase login
    ```
 
-3. Verify target project association in `.firebaserc` or initialize:
+3. **Explicitly switch active project in Firebase CLI**:
    ```bash
-   firebase use stadiummind-ai-f7ced
+   firebase use praful-workspace
    ```
 
 ---
@@ -114,17 +114,17 @@ This compiles TypeScript and outputs optimized static assets to the `/dist` dire
 
 ## 🚢 Step 5: Deploy to Firebase Hosting
 
-Execute the Firebase deployment command:
+Execute the Firebase deployment command with explicit project flag:
 
 ```bash
-firebase deploy --only hosting
+firebase deploy --only hosting --project praful-workspace
 ```
 
 ---
 
 ## 🧪 Step 6: Verification & End-to-End Testing
 
-1. Open the **Hosting URL** (`https://stadiummind-ai-f7ced.web.app/copilot`) in your browser.
+1. Open your **Hosting URL** (`https://praful-workspace.web.app/copilot`) in your browser.
 2. Verify that live Firestore stadium data loads immediately on the **Gates** and **Copilot** dashboards.
 3. Submit a recommendation request in the AI Copilot UI and verify that `/api/copilot/recommend` executes cleanly via Cloud Run rewrites.
 4. Check **Developer Mode** in the UI to confirm low latency and transparent engine observability (`⚡ Gemini 2.5 Flash API`).
