@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="stadium-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="glow-teal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F2FE"/>
+      <stop offset="100%" stop-color="#4FACFE"/>
+    </linearGradient>
+    <linearGradient id="sparkle-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded Base Badge -->
+  <rect width="64" height="64" rx="16" fill="url(#stadium-bg)"/>
+  <rect width="62" height="62" x="1" y="1" rx="15" fill="none" stroke="url(#glow-teal)" stroke-opacity="0.3" stroke-width="1.5"/>
+  
+  <!-- Outer Stadium Ring -->
+  <ellipse cx="32" cy="34" rx="22" ry="14" stroke="url(#glow-teal)" stroke-width="3" fill="none"/>
+  <!-- Inner Stadium Pitch -->
+  <ellipse cx="32" cy="34" rx="14" ry="8" fill="#10b981" fill-opacity="0.15" stroke="#10b981" stroke-width="1.5" stroke-dasharray="3 2"/>
+
+  <!-- AI Sparkle Core -->
+  <path d="M32 14 C32 19 34 21 39 21 C34 21 32 23 32 28 C32 23 30 21 25 21 C30 21 32 19 32 14 Z" fill="url(#sparkle-gold)"/>
+  
+  <!-- Top Beacon Light -->
+  <circle cx="32" cy="12" r="2" fill="#00F2FE"/>
+</svg>

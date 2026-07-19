@@ -6,7 +6,6 @@ import {
   Users,
   Car,
   Bath,
-  Activity,
   Sparkles,
 } from 'lucide-react';
 import { Card } from '../components/Card';
@@ -104,11 +103,11 @@ export const Dashboard: React.FC = () => {
 
           <div className="shrink-0 flex items-center gap-3">
             <Link
-              to="/simulator"
+              to="/copilot"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-gold text-stadium-950 font-bold text-sm hover:bg-amber-300 transition-all shadow-glow focus:outline-none focus:ring-2 focus:ring-brand-gold"
             >
-              <Activity className="w-4 h-4" />
-              <span>Admin Simulator</span>
+              <Sparkles className="w-4 h-4" />
+              <span>AI Copilot</span>
             </Link>
           </div>
         </div>
