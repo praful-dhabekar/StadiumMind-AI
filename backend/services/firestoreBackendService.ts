@@ -43,7 +43,6 @@ export async function saveRecommendationLog(
   const logEntry = {
     timestamp: new Date().toISOString(),
     request,
-    recommendation,
     response: recommendation,
     confidence: recommendation.confidence,
     reasoning: recommendation.reasoning,
@@ -58,7 +57,10 @@ export async function saveRecommendationLog(
     const id = await addDocument('recommendations', logEntry);
     return id;
   } catch (error) {
-    console.error('Failed to log recommendation to Firestore:', error);
+    const msg = (error as Error).message || 'Unknown error';
+    if (process.env.NODE_ENV !== 'test') {
+      console.warn(`[Firestore] Failed to persist recommendation log: ${msg}`);
+    }
     return `local_${Date.now()}`;
   }
 }

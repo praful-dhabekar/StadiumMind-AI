@@ -78,10 +78,16 @@ copilotRouter.post('/recommend', async (req: Request, res: Response) => {
       engine: observability.engine,
     });
   } catch (error) {
-    console.error('Error generating copilot recommendation:', error);
+    const msg = (error as Error).message || 'An error occurred while generating the AI copilot recommendation.';
+    // Structured error log — captured by Cloud Logging in production
+    if (process.env.NODE_ENV === 'production') {
+      console.error(JSON.stringify({ severity: 'ERROR', route: 'POST /recommend', error: msg }));
+    } else if (process.env.NODE_ENV !== 'test') {
+      console.error('[POST /recommend] Error generating recommendation:', msg);
+    }
     return res.status(500).json({
       success: false,
-      error: (error as Error).message || 'An error occurred while generating the AI copilot recommendation.',
+      error: msg,
     });
   }
 });

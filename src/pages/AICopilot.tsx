@@ -31,6 +31,22 @@ import {
 } from '../../backend/models/copilotTypes';
 import { requestCopilotRecommendation, fetchRecommendationLogs } from '../services/copilotApiService';
 
+/** Shape of a single recommendation log entry from Firestore */
+interface RecommendationLog {
+  id?: string;
+  timestamp: string;
+  request?: {
+    fanType?: string;
+    fanLanguage?: string;
+  };
+  response?: {
+    recommendedGate?: string;
+    translatedMessage?: string;
+  };
+  duration?: number;
+  engine?: string;
+}
+
 export const AICopilot: React.FC = () => {
   // Form State
   const [fanLanguage, setFanLanguage] = useState<FanLanguage>('English');
@@ -48,15 +64,19 @@ export const AICopilot: React.FC = () => {
   const [copied, setCopied] = useState<boolean>(false);
 
   // History State
-  const [historyLogs, setHistoryLogs] = useState<any[]>([]);
+  const [historyLogs, setHistoryLogs] = useState<RecommendationLog[]>([]);
 
   useEffect(() => {
     loadHistory();
   }, []);
 
   const loadHistory = async () => {
-    const logs = await fetchRecommendationLogs();
-    setHistoryLogs(logs);
+    try {
+      const logs = await fetchRecommendationLogs();
+      setHistoryLogs(logs);
+    } catch (_e) {
+      // History is non-critical; silently skip
+    }
   };
 
   const handleGenerate = async (e?: React.FormEvent) => {
@@ -151,11 +171,15 @@ export const AICopilot: React.FC = () => {
             <form onSubmit={handleGenerate} className="space-y-4 pt-1">
               {/* Fan Language Dropdown */}
               <div>
-                <label className="block text-xs font-medium text-stadium-300 mb-1.5 flex items-center gap-1.5">
-                  <Languages className="w-3.5 h-3.5 text-brand-teal" />
+                <label
+                  htmlFor="fan-language"
+                  className="flex items-center gap-1.5 text-xs font-medium text-stadium-300 mb-1.5"
+                >
+                  <Languages className="w-3.5 h-3.5 text-brand-teal" aria-hidden="true" />
                   <span>Fan Spoken Language</span>
                 </label>
                 <select
+                  id="fan-language"
                   value={fanLanguage}
                   onChange={(e) => setFanLanguage(e.target.value as FanLanguage)}
                   className="w-full bg-stadium-950 border border-stadium-800 rounded-xl px-3.5 py-2.5 text-xs text-stadium-100 focus:outline-none focus:ring-2 focus:ring-brand-teal"
@@ -171,11 +195,15 @@ export const AICopilot: React.FC = () => {
 
               {/* Fan Type Dropdown */}
               <div>
-                <label className="block text-xs font-medium text-stadium-300 mb-1.5 flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5 text-brand-teal" />
+                <label
+                  htmlFor="fan-type"
+                  className="flex items-center gap-1.5 text-xs font-medium text-stadium-300 mb-1.5"
+                >
+                  <Users className="w-3.5 h-3.5 text-brand-teal" aria-hidden="true" />
                   <span>Fan Category / Demographic</span>
                 </label>
                 <select
+                  id="fan-type"
                   value={fanType}
                   onChange={(e) => setFanType(e.target.value as FanType)}
                   className="w-full bg-stadium-950 border border-stadium-800 rounded-xl px-3.5 py-2.5 text-xs text-stadium-100 focus:outline-none focus:ring-2 focus:ring-brand-teal"
@@ -191,11 +219,15 @@ export const AICopilot: React.FC = () => {
               {/* Destination Dropdown */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-stadium-300 mb-1.5 flex items-center gap-1.5">
-                    <Compass className="w-3.5 h-3.5 text-brand-teal" />
+                  <label
+                    htmlFor="destination"
+                    className="flex items-center gap-1.5 text-xs font-medium text-stadium-300 mb-1.5"
+                  >
+                    <Compass className="w-3.5 h-3.5 text-brand-teal" aria-hidden="true" />
                     <span>Target Destination</span>
                   </label>
                   <select
+                    id="destination"
                     value={destination}
                     onChange={(e) => setDestination(e.target.value as DestinationType)}
                     className="w-full bg-stadium-950 border border-stadium-800 rounded-xl px-3.5 py-2.5 text-xs text-stadium-100 focus:outline-none focus:ring-2 focus:ring-brand-teal"
@@ -209,11 +241,15 @@ export const AICopilot: React.FC = () => {
 
                 {/* Current Gate Dropdown */}
                 <div>
-                  <label className="block text-xs font-medium text-stadium-300 mb-1.5 flex items-center gap-1.5">
-                    <DoorOpen className="w-3.5 h-3.5 text-brand-teal" />
+                  <label
+                    htmlFor="current-gate"
+                    className="flex items-center gap-1.5 text-xs font-medium text-stadium-300 mb-1.5"
+                  >
+                    <DoorOpen className="w-3.5 h-3.5 text-brand-teal" aria-hidden="true" />
                     <span>Current Gate</span>
                   </label>
                   <select
+                    id="current-gate"
                     value={currentGate}
                     onChange={(e) => setCurrentGate(e.target.value)}
                     className="w-full bg-stadium-950 border border-stadium-800 rounded-xl px-3.5 py-2.5 text-xs text-stadium-100 focus:outline-none focus:ring-2 focus:ring-brand-teal"
@@ -228,17 +264,23 @@ export const AICopilot: React.FC = () => {
 
               {/* Optional Notes Textbox */}
               <div>
-                <label className="block text-xs font-medium text-stadium-300 mb-1.5 flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5 text-brand-teal" />
+                <label
+                  htmlFor="volunteer-notes"
+                  className="flex items-center gap-1.5 text-xs font-medium text-stadium-300 mb-1.5"
+                >
+                  <FileText className="w-3.5 h-3.5 text-brand-teal" aria-hidden="true" />
                   <span>Optional Notes & Observations</span>
                 </label>
                 <textarea
+                  id="volunteer-notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={3}
                   placeholder="e.g., Family has two children. Looking stressed."
+                  aria-describedby="notes-hint"
                   className="w-full bg-stadium-950 border border-stadium-800 rounded-xl p-3 text-xs text-stadium-100 placeholder-stadium-500 focus:outline-none focus:ring-2 focus:ring-brand-teal resize-none"
                 />
+                <p id="notes-hint" className="sr-only">Optional context about the fan situation for better AI recommendations</p>
               </div>
 
               {/* Submit Button */}
@@ -264,7 +306,8 @@ export const AICopilot: React.FC = () => {
         </div>
 
         {/* Right Column: AI Output & Observability (7 cols) */}
-        <div className="lg:col-span-7 space-y-6">
+        {/* aria-live: screen readers announce new recommendations automatically */}
+        <div className="lg:col-span-7 space-y-6" aria-live="polite" aria-atomic="false">
           {isLoading && (
             <Card className="min-h-[400px] flex items-center justify-center">
               <Loading label="Gemini 2.5 Flash analyzing Firestore gate telemetry, queue wait times & accessibility paths..." />
@@ -361,8 +404,8 @@ export const AICopilot: React.FC = () => {
                       </span>
                       <button
                         onClick={handleCopyMessage}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stadium-800 hover:bg-stadium-700 text-[11px] font-medium text-stadium-200 transition-colors"
-                        title="Copy message to clipboard"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stadium-800 hover:bg-stadium-700 text-[11px] font-medium text-stadium-200 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-teal"
+                        aria-label={copied ? 'Message copied to clipboard' : 'Copy fan message to clipboard'}
                       >
                         {copied ? (
                           <>

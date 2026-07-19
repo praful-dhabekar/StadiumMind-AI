@@ -2,50 +2,37 @@ import {
   CopilotRequest,
   CopilotResponsePayload,
 } from '../../backend/models/copilotTypes';
-import { getLiveStadiumData } from '../../backend/services/firestoreBackendService';
-import { generateCopilotRecommendation } from '../../backend/services/geminiService';
-import { saveRecommendationLog } from '../../backend/services/firestoreBackendService';
 
 /**
- * Frontend client service for requesting AI Copilot recommendations from Express backend server.
- * Includes client-side fallback if backend port is not currently connected.
+ * Frontend client service for requesting AI Copilot recommendations from the Express backend.
+ * ALL AI reasoning and Gemini calls happen on the backend — this file never imports
+ * backend services directly, preventing accidental key/logic exposure in the browser bundle.
  */
 export async function requestCopilotRecommendation(
   requestPayload: CopilotRequest
 ): Promise<CopilotResponsePayload> {
-  try {
-    const response = await fetch('/api/copilot/recommend', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestPayload),
-    });
+  const response = await fetch('/api/copilot/recommend', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestPayload),
+  });
 
-    if (response.ok) {
-      const result: CopilotResponsePayload = await response.json();
-      return result;
-    }
-    const errorJson = await response.json().catch(() => ({}));
-    throw new Error(errorJson.error || `Server responded with status ${response.status}`);
-  } catch (clientErr) {
-    console.warn('Backend Express proxy unreachable. Executing client-side fallback reasoning engine:', clientErr);
-    // Direct fallback execution
-    const liveData = await getLiveStadiumData();
-    const { recommendation, observability } = await generateCopilotRecommendation(requestPayload, liveData);
-    const recommendationId = await saveRecommendationLog(requestPayload, recommendation, observability);
-
-    return {
-      success: true,
-      data: recommendation,
-      observability,
-      recommendationId,
-    };
+  if (response.ok) {
+    const result: CopilotResponsePayload = await response.json();
+    return result;
   }
+
+  // Surface structured backend error to the caller
+  const errorJson = await response.json().catch(() => ({}));
+  throw new Error(
+    errorJson.error || `Copilot API responded with status ${response.status}`
+  );
 }
 
 /**
- * Fetch recent recommendation audit logs from Firestore.
+ * Fetch recent recommendation audit logs from the Express backend.
  */
 export async function fetchRecommendationLogs(): Promise<any[]> {
   try {
@@ -55,7 +42,7 @@ export async function fetchRecommendationLogs(): Promise<any[]> {
       return data.logs || [];
     }
   } catch (_e) {
-    //
+    // History fetch is non-critical — silently return empty on failure
   }
   return [];
 }
