@@ -28,7 +28,20 @@ This document details the exact, step-by-step procedures to deploy the **Stadium
 
 ---
 
-## 📋 Step 1: Firebase CLI & Project Setup
+## 📋 Step 1: Enable Cloud Run API in GCP Project
+
+Because `firebase.json` routes `/api/**` to Cloud Run, Firebase Hosting requires the **Cloud Run Admin API (`run.googleapis.com`)** to be enabled in your Google Cloud / Firebase project.
+
+Run this command in **GCP Cloud Shell** or your terminal:
+
+```bash
+# Enable Cloud Run Admin API on your Firebase project
+gcloud services enable run.googleapis.com --project=stadiummind-ai-f7ced
+```
+
+---
+
+## 📋 Step 2: Firebase CLI & Project Setup
 
 1. Install the global Firebase CLI tool (if not installed):
    ```bash
@@ -40,20 +53,16 @@ This document details the exact, step-by-step procedures to deploy the **Stadium
    firebase login
    ```
 
-3. Initialize Firebase Hosting in your local workspace (or verify `firebase.json`):
+3. Verify target project association in `.firebaserc` or initialize:
    ```bash
-   firebase init hosting
+   firebase use stadiummind-ai-f7ced
    ```
-   - **Select Project**: Choose `stadiummind-ai-f7ced` (or your production project ID).
-   - **Public directory**: `dist`
-   - **Configure as single-page app**: `Yes`
-   - **Set up automatic builds with GitHub**: `No`
 
 ---
 
-## ⚙️ Step 2: Configure Rewrite Rules (`firebase.json`)
+## ⚙️ Step 3: Configure Rewrite Rules (`firebase.json`)
 
-To seamlessly route frontend API requests (`/api/copilot/*`) to our Cloud Run container without CORS complexity or hardcoded production backend URLs, configure `firebase.json` rewrites pointing to your Cloud Run service:
+To seamlessly route frontend API requests (`/api/copilot/*`) to our Cloud Run container without CORS complexity or hardcoded production backend URLs, `firebase.json` in the root directory contains:
 
 ```json
 {
@@ -90,7 +99,7 @@ To seamlessly route frontend API requests (`/api/copilot/*`) to our Cloud Run co
 
 ---
 
-## 🏗️ Step 3: Build Production Bundle (`npm run build`)
+## 🏗️ Step 4: Build Production Bundle (`npm run build`)
 
 Before deploying, generate the production Vite bundle:
 
@@ -99,11 +108,11 @@ Before deploying, generate the production Vite bundle:
 npm run build
 ```
 
-This compiles TypeScript and outputs optimized, minified static assets to the `/dist` directory.
+This compiles TypeScript and outputs optimized static assets to the `/dist` directory.
 
 ---
 
-## 🚢 Step 4: Deploy to Firebase Hosting
+## 🚢 Step 5: Deploy to Firebase Hosting
 
 Execute the Firebase deployment command:
 
@@ -111,27 +120,9 @@ Execute the Firebase deployment command:
 firebase deploy --only hosting
 ```
 
-**Output Example:**
-```
-=== Deploying to 'stadiummind-ai-f7ced'...
-i  deploying hosting
-i  hosting[stadiummind-ai-f7ced]: beginning deploy...
-i  hosting[stadiummind-ai-f7ced]: found 14 files in dist
-✔  hosting[stadiummind-ai-f7ced]: file upload complete
-i  hosting[stadiummind-ai-f7ced]: finalizing version...
-✔  hosting[stadiummind-ai-f7ced]: version finalized
-i  hosting[stadiummind-ai-f7ced]: releasing new version...
-✔  hosting[stadiummind-ai-f7ced]: release complete
-
-✔  Deploy complete!
-
-Project Console: https://console.firebase.google.com/project/stadiummind-ai-f7ced/overview
-Hosting URL: https://stadiummind-ai-f7ced.web.app
-```
-
 ---
 
-## 🧪 Step 5: Verification & End-to-End Testing
+## 🧪 Step 6: Verification & End-to-End Testing
 
 1. Open the **Hosting URL** (`https://stadiummind-ai-f7ced.web.app/copilot`) in your browser.
 2. Verify that live Firestore stadium data loads immediately on the **Gates** and **Copilot** dashboards.
